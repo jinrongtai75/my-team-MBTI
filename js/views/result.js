@@ -1,21 +1,30 @@
 import { mbtiScorer } from '../logic/mbtiScorer.js';
 import { store } from '../utils/store.js';
 
-export function renderResult(container, navigate, state) {
+export async function renderResult(container, navigate, state) {
     if (!state || !state.name || !state.answers) {
         navigate('home');
         return;
     }
+
+    // Show initial loading state for saving
+    container.innerHTML = `
+        <div class="view fade-in" style="justify-content: center; min-height: 60vh;">
+            <div class="text-center">
+                <h3 class="title" style="font-size: 2rem;">결과 분석 및 저장 중...</h3>
+                <p class="subtitle mt-4">잠시만 기다려주세요 ⏳</p>
+            </div>
+        </div>
+    `;
 
     // calculate type
     const result = mbtiScorer.calculateType(state.answers);
     const detail = mbtiScorer.getDetail(result.type);
     
     // save to store
-    store.addMember({
+    await store.addMember({
         name: state.name,
         mbti: result.type,
-        date: new Date().toISOString(),
         scores: result.scores
     });
 

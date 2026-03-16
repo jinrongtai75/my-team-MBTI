@@ -2,8 +2,18 @@ import { store } from '../utils/store.js';
 import { mbtiScorer } from '../logic/mbtiScorer.js';
 import { compatibilityMatrix } from '../logic/compatibility.js';
 
-export function renderTeamReport(container, navigate) {
-    const members = store.getMembers();
+export async function renderTeamReport(container, navigate) {
+    // Show initial loading state
+    container.innerHTML = `
+        <div class="view fade-in" style="justify-content: center; min-height: 60vh;">
+            <div class="text-center">
+                <h3 class="title" style="font-size: 2rem;">팀원 데이터 불러오는 중...</h3>
+                <p class="subtitle mt-4">잠시만 기다려주세요 ⏳</p>
+            </div>
+        </div>
+    `;
+
+    const members = await store.getMembers();
     let selectedMembers = [];
 
     const render = () => {
@@ -13,7 +23,7 @@ export function renderTeamReport(container, navigate) {
                     <h1 class="title mb-4 text-center">팀 대시보드</h1>
                     <div class="glass-card empty-state">
                         <h3>아직 등록된 팀원이 없습니다.</h3>
-                        <p class="mb-6">먼저 테스트를 진행하여 팀원들의 성향을 추가해보세요!</p>
+                        <p class="mb-6">먼저 테스트를 진행하여 첫 번째 팀원이 되어보세요!</p>
                         <button id="goTestBtn" class="btn-primary">테스트 하러가기</button>
                     </div>
                 </div>
@@ -97,9 +107,14 @@ export function renderTeamReport(container, navigate) {
             });
         });
 
-        container.querySelector('#resetMembersBtn').addEventListener('click', () => {
-            if(confirm('정말 모든 팀원 데이터를 삭제하시겠습니까?')) {
-                store.clearMembers();
+        container.querySelector('#resetMembersBtn').addEventListener('click', async () => {
+            if(confirm('정말 모든 팀원 데이터를 삭제하시겠습니까? (서버에서 영구 삭제됩니다)')) {
+                container.querySelector('#resetMembersBtn').textContent = '삭제 중...';
+                await store.clearMembers();
+                // re-fetch from supabase
+                const updatedMembers = await store.getMembers();
+                members.length = 0; // empty current array
+                updatedMembers.forEach(m => members.push(m)); // fill with new
                 selectedMembers = [];
                 render();
             }

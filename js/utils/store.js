@@ -1,46 +1,60 @@
-// LocalStorage Wrapper for standardizing data access
+// Supabase wrapper for standardizing data access
 
-const STORE_KEY = 'mbti_team_members';
+const supabaseUrl = 'https://hnaiqogmvhzlyiywlpzx.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYWlxb2dtdmh6bHlpeXdscHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MzA2OTgsImV4cCI6MjA4OTIwNjY5OH0._-1rZ7E6683MHbi9t7IUDwXCKUYZLm936Cn4ydMomnI';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 export const store = {
-    // Get all registered members
-    getMembers() {
-        const data = localStorage.getItem(STORE_KEY);
+    // Get all registered members asynchronously
+    async getMembers() {
         try {
-            return data ? JSON.parse(data) : [];
+            const { data, error } = await supabase
+                .from('team_members')
+                .select('*')
+                .order('created_at', { ascending: false });
+                
+            if (error) throw error;
+            return data || [];
         } catch (e) {
-            console.error('Error parsing stored members', e);
+            console.error('Error fetching members from Supabase', e);
             return [];
         }
     },
 
-    // Add a new member test result
-    addMember(member) {
-        // member object expected: { id, name, mbti, date, scores }
-        const members = this.getMembers();
-        
-        // update if member name already exists (simple overwrite logic for same names)
-        const existingIndex = members.findIndex(m => m.name === member.name);
-        if (existingIndex >= 0) {
-            members[existingIndex] = { ...members[existingIndex], ...member, id: members[existingIndex].id };
-        } else {
-            // Assign a unique ID
-            member.id = Date.now().toString(36) + Math.random().toString(36).substring(2);
-            members.push(member);
+    // Add a new member test result asynchronously
+    async addMember(member) {
+        // member object expected: { name, mbti, scores }
+        try {
+            const { data, error } = await supabase
+                .from('team_members')
+                .insert([
+                    { name: member.name, mbti: member.mbti, scores: member.scores }
+                ])
+                .select();
+                
+            if (error) throw error;
+            return data && data.length > 0 ? data[0] : null;
+        } catch (e) {
+            console.error('Error saving member to Supabase', e);
+            return null;
         }
-        
-        localStorage.setItem(STORE_KEY, JSON.stringify(members));
-        return member;
-    },
-
-    // Get a specific member by ID
-    getMemberById(id) {
-        const members = this.getMembers();
-        return members.find(m => m.id === id);
     },
     
     // Clear all members (for testing/reset)
-    clearMembers() {
-        localStorage.removeItem(STORE_KEY);
+    async clearMembers() {
+        try {
+            // This requires RLS policies to allow delete operations
+            // As a simple workaround for demo/testing without proper RLS DELETE allow list:
+            const { error } = await supabase
+                .from('team_members')
+                .delete()
+                .neq('id', 0); // Delete all where id is not 0 (effectively deletes all rows)
+                
+            if (error) throw error;
+            return true;
+        } catch (e) {
+            console.error('Error clearing members from Supabase', e);
+            return false;
+        }
     }
 };
