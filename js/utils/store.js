@@ -9,7 +9,7 @@ export const store = {
     async getMembers() {
         try {
             const { data, error } = await supabase
-                .from('team_members')
+                .from('team_MBTI_members')
                 .select('*')
                 .order('created_at', { ascending: false });
                 
@@ -26,7 +26,7 @@ export const store = {
         // member object expected: { name, mbti, scores }
         try {
             const { data, error } = await supabase
-                .from('team_members')
+                .from('team_MBTI_members')
                 .insert([
                     { name: member.name, mbti: member.mbti, scores: member.scores }
                 ])
@@ -46,7 +46,7 @@ export const store = {
             // This requires RLS policies to allow delete operations
             // As a simple workaround for demo/testing without proper RLS DELETE allow list:
             const { error } = await supabase
-                .from('team_members')
+                .from('team_MBTI_members')
                 .delete()
                 .neq('id', 0); // Delete all where id is not 0 (effectively deletes all rows)
                 

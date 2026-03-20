@@ -1,21 +1,35 @@
-// Logic to calculate final MBTI traits
+// 리커트 척도 기반 MBTI 채점 로직
+// answers: [{ dimension: 'EI', weight: 1, likertValue: 2 }, ...]
+// score = likertValue * weight, 지표별 합산 > 0 이면 앞 글자, < 0 이면 뒷 글자
+// 0점이면 해당 지표는 'X' (borderline)
+
 export const mbtiScorer = {
     calculateType(answers) {
-        // answers array of { type: 'E', value: 1 }
-        const scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
-        
-        answers.forEach(ans => {
-            scores[ans.type] += ans.value;
-        });
-        
-        const type = [
-            scores.E >= scores.I ? 'E' : 'I',
-            scores.S >= scores.N ? 'S' : 'N',
-            scores.T >= scores.F ? 'T' : 'F',
-            scores.J >= scores.P ? 'J' : 'P'
-        ].join('');
+        // 지표별 점수 합산
+        const scores = { EI: 0, SN: 0, TF: 0, JP: 0 };
 
-        return { type, scores };
+        answers.forEach(ans => {
+            scores[ans.dimension] += ans.likertValue * ans.weight;
+        });
+
+        // 각 지표를 결정 (borderline 0점은 첫 글자 기본값)
+        const EI = scores.EI >= 0 ? 'E' : 'I';
+        const SN = scores.SN >= 0 ? 'S' : 'N';
+        const TF = scores.TF >= 0 ? 'T' : 'F';
+        const JP = scores.JP >= 0 ? 'J' : 'P';
+
+        const type = EI + SN + TF + JP;
+
+        // 각 지표의 강도(백분율) 계산 — 7문항 × max 2점 = 최대 14점
+        const maxScore = 14;
+        const strength = {
+            EI: Math.abs(scores.EI) / maxScore,
+            SN: Math.abs(scores.SN) / maxScore,
+            TF: Math.abs(scores.TF) / maxScore,
+            JP: Math.abs(scores.JP) / maxScore
+        };
+
+        return { type, rawScores: scores, strength };
     },
 
     getDetail(mbti) {
